@@ -121,6 +121,51 @@ public class CipherService {
 		}
 	}
 
+	private Cipher getEncrypter() throws GeneralSecurityException {
+		// Ciphers are expensive items to create by the JVM, because of that we must
+		// create an object pool.
+		// NOTE: You must use Apache Commons Pool instead of a manual pool.
+		// Initialization vector is necessary for any cipher in any feedback mode. (16)
+		IvParameterSpec ivparameterSpec = new IvParameterSpec(INITIALIZATION_VECTOR);
+
+		SecretKeyFactory secretFactory;
+		try {
+			secretFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			LOGGER.error("Error on SecretKeyFactory.getInstance", e);
+			throw e;
+		}
+
+		KeySpec keySpec = new PBEKeySpec(SECRET_KEY.toCharArray(), SALT.getBytes(), 65536, 256);
+		SecretKey secretKey;
+		try {
+			secretKey = secretFactory.generateSecret(keySpec);
+		} catch (InvalidKeySpecException e) {
+			LOGGER.error("Error on SecretKeyFactory.generateSecret", e);
+			throw e;
+		}
+
+		SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getEncoded(), "AES");
+
+		// Add to ENCRYPT_POOL
+		Cipher encrypter;
+		try {
+			encrypter = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+			LOGGER.error("Error on Cipher.getInstance", e);
+			throw e;
+		}
+		try {
+			encrypter.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivparameterSpec);
+		} catch (InvalidKeyException e) {
+			LOGGER.error("Error on cipher.init", e);
+			throw e;
+		}
+
+		return encrypter;
+
+	}
+
 	private void fillDecryptPool() throws GeneralSecurityException {
 		// Ciphers are expensive items to create by the JVM, because of that we must
 		// create an object pool.
@@ -164,6 +209,49 @@ public class CipherService {
 			}
 			DECRYPT_POOL.add(decrypter);
 		}
+	}
+
+	public Cipher getDecrypter() throws GeneralSecurityException {
+		// Ciphers are expensive items to create by the JVM, because of that we must
+		// create an object pool.
+		// NOTE: You must use Apache Commons Pool instead of a manual pool.
+		// Initialization vector is necessary for any cipher in any feedback mode. (16)
+		IvParameterSpec ivparameterSpec = new IvParameterSpec(INITIALIZATION_VECTOR);
+
+		SecretKeyFactory secretFactory;
+		try {
+			secretFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+		} catch (NoSuchAlgorithmException e) {
+			LOGGER.error("Error on SecretKeyFactory.getInstance", e);
+			throw e;
+		}
+
+		KeySpec keySpec = new PBEKeySpec(SECRET_KEY.toCharArray(), SALT.getBytes(), 65536, 256);
+		SecretKey secretKey;
+		try {
+			secretKey = secretFactory.generateSecret(keySpec);
+		} catch (InvalidKeySpecException e) {
+			LOGGER.error("Error on SecretKeyFactory.generateSecret", e);
+			throw e;
+		}
+
+		SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getEncoded(), "AES");
+
+		// Add to DECRYPT_POOL
+		Cipher decrypter;
+		try {
+			decrypter = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+			LOGGER.error("Error on Cipher.getInstance", e);
+			throw e;
+		}
+		try {
+			decrypter.init(Cipher.DECRYPT_MODE, secretKeySpec, ivparameterSpec);
+		} catch (InvalidKeyException e) {
+			LOGGER.error("Error on cipher.init", e);
+			throw e;
+		}
+		return decrypter;
 	}
 
 	private void checkPool() {
