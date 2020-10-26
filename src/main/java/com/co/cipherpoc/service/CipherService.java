@@ -174,7 +174,7 @@ public class CipherService {
 	public String encrypt(String value) throws Exception {
 		Cipher encrypter = ENCRYPT_POOL.poll();
 		if (encrypter == null) {
-			throw new Exception("decrypter is null!");
+			throw new Exception("encrypter is null!");
 		}
 
 		try {
