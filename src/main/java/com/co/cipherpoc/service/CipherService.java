@@ -194,7 +194,7 @@ public class CipherService {
 		try {
 			return new String(decrypter.doFinal(Base64.getDecoder().decode(value)));
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
-			LOGGER.error("Error on encrypt", e);
+			LOGGER.error("Error on decrypt", e);
 			throw e;
 		}
 	}
